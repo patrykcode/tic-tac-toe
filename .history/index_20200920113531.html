@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gra kółko i krzyżyk</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  </head>
+  <body>
+    <div id="xogame">
+      <h2>Plansza</h2>
+      <template v-for="(y,i1) in sqm">
+        <template v-for="(val,i2) in y">
+          <label :for="'s'+i1+i2" class="sqm" :ref="'s'+i1+i2">
+            <input
+              type="checkbox"
+              :id="'s'+i1+i2"
+              v-model="sqm[i1][i2]"
+              :disabled="sqm[i1][i2]"
+              @input="checkBox(i1,i2)"
+              style="display: none"
+            />
+          </label>
+        </template>
+        <br />
+      </template>
+    </div>
+    <style>
+      *,
+      ::after,
+      ::before {
+        box-sizing: border-box;
+      }
+      #xogame {
+        width: 250px;
+        text-align: center;
+        background-image: url('plansza.png');
+      }
+      .sqm {
+        display: inline-block;
+        border: 1px solid #ddd;
+        width: 20px;
+        height: 20px;
+        margin: 0px 2px;
+      }
+    </style>
+    <script>
+      function emptyArray(val, size) {
+        let a = [];
+        for (let y = 0; y <= size; y++) {
+          a[y] = a[y] || [];
+          for (let x = 0; x <= size; x++) {
+            a[y][x] = val;
+          }
+        }
+        return a;
+      }
+
+      const size = 2;
+      new Vue({
+        el: "#xogame",
+        data() {
+          return {
+            size: size,
+            sqm: emptyArray(false, size),
+            box: emptyArray("", size),
+            click: false,
+            players: {
+              0: {
+                c: "red",
+                n: "CZERWONY",
+              },
+              1: {
+                c: "green",
+                n: "ZIELONY",
+              },
+            },
+          };
+        },
+        methods: {
+          checkResult(arr) {
+            const result = arr.filter(function (x, i, a) {
+              return a.indexOf(x) == i;
+            });
+            if (result.length === 1 && ["x", "o"].indexOf(result[0]) !== -1) {
+              const winer = this.players[!this.click ? 1 : 0].n;
+              setTimeout(() => {
+                alert("Wygrywa gracz: " + winer);
+                this.reset();
+              }, 100);
+
+              return winer;
+            }
+            
+          },
+          remis(arr){
+            const remis = arr.filter(function (x, i, a) {
+              return a[i] === "";
+            });
+            if (remis.length===0) {
+              setTimeout(() => {
+                alert("REMIS");
+                this.reset();
+              }, 100);
+            }
+          },
+          winer() {
+            let right = [];
+            let left = [];
+            let all = [];
+            for (let y = 0; y <= this.size; y++) {
+              let verti = [];
+              this.checkResult(this.box[y]);
+              right.push(this.box[y][y]);
+              for (let x = 0; x <= this.size; x++) {
+                verti.push(this.box[x][y]);
+                all.push(this.box[x][y]);
+              }
+              this.checkResult(verti);
+            }
+            this.checkResult(right);
+
+            for (let y = 0; y <= this.size; y++) {
+              for (let x = this.size; x >= 0; x--) {
+                if (y === this.size - x) {
+                  left.push(this.box[y][x]);
+                }
+              }
+            }
+            this.checkResult(left);
+            this.remis(all)
+          },
+          checkBox(y, x) {
+            if (this.box[y][x] === "") {
+              this.$refs["s" + y + x][0].style.background = this.players[
+                this.click ? 1 : 0
+              ].c;
+              this.box[y][x] = this.click ? "x" : "o";
+              //send socket after klick
+              this.click = !this.click;
+            }
+            this.winer();
+          },
+          clearBg() {
+            for (let y = 0; y <= this.size; y++) {
+              for (let x = 0; x <= this.size; x++) {
+                this.$refs["s" + y + x][0].style.background = "none";
+              }
+            }
+          },
+          reset() {
+            this.click = false;
+            this.sqm = [];
+            this.box = [];
+            this.sqm = emptyArray(false, this.size);
+            this.box = emptyArray("", this.size);
+            this.clearBg();
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
